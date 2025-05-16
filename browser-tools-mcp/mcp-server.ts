@@ -65,8 +65,14 @@ wss.on('connection', (ws) => {
 // Start the server
 server.listen(port, '0.0.0.0', () => {
   console.log(`Server running on port ${port}`);
-  console.log(`WebSocket server available at ws://${process.env.RENDER_EXTERNAL_URL || 'localhost'}:${port}`);
-  console.log(`Health check available at http://${process.env.RENDER_EXTERNAL_URL || 'localhost'}:${port}/health`);
+  
+  // Format URLs correctly based on environment
+  const baseUrl = process.env.RENDER_EXTERNAL_URL 
+    ? process.env.RENDER_EXTERNAL_URL.replace(/^https?:\/\//, '') // Remove protocol if present
+    : `localhost:${port}`;
+    
+  console.log(`WebSocket server available at wss://${baseUrl}`);
+  console.log(`Health check available at https://${baseUrl}/health`);
 });
 
 // Track the discovered server connection
