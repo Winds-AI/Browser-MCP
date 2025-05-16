@@ -40,6 +40,13 @@ app.get('/.identity', (req, res) => {
   res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   
+  // Log the request for debugging
+  console.log('Identity request received:', {
+    headers: req.headers,
+    url: req.url,
+    method: req.method
+  });
+  
   // Return the server identity
   res.status(200).json({
     name: "Browser Tools MCP",
@@ -48,12 +55,83 @@ app.get('/.identity', (req, res) => {
   });
 });
 
+// Add a special port endpoint for Chrome extension compatibility
+app.get('/.port', (req, res) => {
+  // Set CORS headers to allow requests from any origin
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  
+  // Log the request for debugging
+  console.log('Port request received:', {
+    headers: req.headers,
+    url: req.url,
+    method: req.method
+  });
+  
+  // Return a simple text response that the extension expects
+  res.status(200).send('OK');
+});
+
 // Add OPTIONS handler for CORS preflight requests
 app.options('/.identity', (req, res) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.sendStatus(200);
+});
+
+// Add OPTIONS handler for port endpoint
+app.options('/.port', (req, res) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.sendStatus(200);
+});
+
+// Add console-logs endpoint for Chrome extension compatibility
+app.get('/console-logs', (req, res) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  
+  console.log('Console logs request received');
+  
+  // Return empty logs array as placeholder
+  res.status(200).json({
+    logs: [],
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Add console-errors endpoint
+app.get('/console-errors', (req, res) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  
+  console.log('Console errors request received');
+  
+  // Return empty errors array as placeholder
+  res.status(200).json({
+    errors: [],
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Add network-logs endpoint
+app.get('/network-logs', (req, res) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  
+  console.log('Network logs request received');
+  
+  // Return empty network logs array as placeholder
+  res.status(200).json({
+    requests: [],
+    timestamp: new Date().toISOString()
+  });
 });
 
 // Create HTTP server
