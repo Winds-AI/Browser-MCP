@@ -7,25 +7,66 @@ import fs from "fs";
 import { z } from "zod";
 
 // Create the MCP server
-const server = new McpServer({
+const mcpServer = new McpServer({
   name: "Browser Tools MCP",
   version: "1.2.0",
-  port: process.env.PORT || 10000, // Use Render's PORT environment variable or default to 10000
+  // Note: This is just for MCP protocol, not the actual HTTP server port
 });
 
-// Start HTTP server for health checks
+// Start HTTP server for health checks and WebSocket connections
 import express from 'express';
+import cors from 'cors';
+import http from 'http';
+import { WebSocketServer } from 'ws';
+
 const app = express();
+
+// Enable CORS for all routes
+app.use(cors({
+  origin: '*', // Allow all origins
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok' });
 });
 
-// Start the server
+// Identity endpoint for the extension to verify the server
+app.get('/.identity', (req, res) => {
+  res.status(200).json({
+    name: "Browser Tools MCP",
+    version: "1.2.0",
+    type: "mcp-server"
+  });
+});
+
+// Create HTTP server
 const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 10000;
-app.listen(port, '0.0.0.0', () => {
-  console.log(`Server is running on port ${port}`);
+const server = http.createServer(app);
+
+// Create WebSocket server
+const wss = new WebSocketServer({ server });
+
+wss.on('connection', (ws) => {
+  console.log('Client connected');
+  
+  ws.on('message', (message) => {
+    console.log('Received message:', message);
+    // Handle messages from the extension
+  });
+  
+  ws.on('close', () => {
+    console.log('Client disconnected');
+  });
+});
+
+// Start the server
+server.listen(port, '0.0.0.0', () => {
+  console.log(`Server running on port ${port}`);
+  console.log(`WebSocket server available at ws://${process.env.RENDER_EXTERNAL_URL || 'localhost'}:${port}`);
+  console.log(`Health check available at http://${process.env.RENDER_EXTERNAL_URL || 'localhost'}:${port}/health`);
 });
 
 // Track the discovered server connection
@@ -190,7 +231,7 @@ async function withServerConnection<T>(
 }
 
 // We'll define our tools that retrieve data from the browser connector
-server.tool("getConsoleLogs", "Check our browser logs", async () => {
+mcpServer.tool("getConsoleLogs", "Check our browser logs", async () => {
   return await withServerConnection(async () => {
     const response = await fetch(
       `http://${discoveredHost}:${discoveredPort}/console-logs`
@@ -207,7 +248,7 @@ server.tool("getConsoleLogs", "Check our browser logs", async () => {
   });
 });
 
-server.tool(
+mcpServer.tool(
   "getConsoleErrors",
   "Check our browsers console errors",
   async () => {
@@ -228,7 +269,7 @@ server.tool(
   }
 );
 
-server.tool("getNetworkErrors", "Check our network ERROR logs", async () => {
+mcpServer.tool("getNetworkErrors", "Check our network ERROR logs", async () => {
   return await withServerConnection(async () => {
     const response = await fetch(
       `http://${discoveredHost}:${discoveredPort}/network-errors`
@@ -246,7 +287,7 @@ server.tool("getNetworkErrors", "Check our network ERROR logs", async () => {
   });
 });
 
-server.tool("getNetworkLogs", "Check ALL our network logs", async () => {
+mcpServer.tool("getNetworkLogs", "Check ALL our network logs", async () => {
   return await withServerConnection(async () => {
     const response = await fetch(
       `http://${discoveredHost}:${discoveredPort}/network-success`
@@ -263,7 +304,7 @@ server.tool("getNetworkLogs", "Check ALL our network logs", async () => {
   });
 });
 
-server.tool(
+mcpServer.tool(
   "getNetworkRequestDetails",
   "Get specific details for network requests based on URL filter and requested fields.",
   { // <--- START with a plain object brace {
@@ -331,7 +372,7 @@ server.tool(
   }
 );
 
-server.tool(
+mcpServer.tool(
   "takeScreenshot",
   "Take a screenshot of the current browser tab",
   async () => {
@@ -381,7 +422,7 @@ server.tool(
   }
 );
 
-server.tool(
+mcpServer.tool(
   "getSelectedElement",
   "Get the selected element from the browser",
   async () => {
@@ -402,7 +443,7 @@ server.tool(
   }
 );
 
-server.tool("wipeLogs", "Wipe all browser logs from memory", async () => {
+mcpServer.tool("wipeLogs", "Wipe all browser logs from memory", async () => {
   return await withServerConnection(async () => {
     const response = await fetch(
       `http://${discoveredHost}:${discoveredPort}/wipelogs`,
@@ -1535,7 +1576,7 @@ enum AuditCategory {
       return originalStdoutWrite(chunk, encoding, callback);
     };
 
-    await server.connect(transport);
+    await mcpServer.connect(transport);
   } catch (error) {
     console.error("Failed to initialize MCP server:", error);
     process.exit(1);
