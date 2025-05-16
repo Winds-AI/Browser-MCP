@@ -10,6 +10,22 @@ import { z } from "zod";
 const server = new McpServer({
   name: "Browser Tools MCP",
   version: "1.2.0",
+  port: process.env.PORT || 10000, // Use Render's PORT environment variable or default to 10000
+});
+
+// Start HTTP server for health checks
+import express from 'express';
+const app = express();
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
+
+// Start the server
+const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 10000;
+app.listen(port, '0.0.0.0', () => {
+  console.log(`Server is running on port ${port}`);
 });
 
 // Track the discovered server connection
