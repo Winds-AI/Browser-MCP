@@ -35,11 +35,25 @@ app.get('/health', (req, res) => {
 
 // Identity endpoint for the extension to verify the server
 app.get('/.identity', (req, res) => {
+  // Set CORS headers to allow requests from any origin
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  
+  // Return the server identity
   res.status(200).json({
     name: "Browser Tools MCP",
     version: "1.2.0",
     type: "mcp-server"
   });
+});
+
+// Add OPTIONS handler for CORS preflight requests
+app.options('/.identity', (req, res) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.sendStatus(200);
 });
 
 // Create HTTP server
